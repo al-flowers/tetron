@@ -6,7 +6,7 @@
  * the action is completed */
 function Action(action, action_id, goal, rate = 1) {
     this.type = action;
-    this.action_id = action_id;
+    this.id = action_id;
     this.paused = false;
     this.is_complete = false;
     this.carryover = false;
@@ -85,7 +85,10 @@ function Action(action, action_id, goal, rate = 1) {
             break;
 
         case 'transform':
-
+            this.direction = 1;
+            this.rate = rate * 0.01;
+            this.goal = goal;
+            this.initialized = false;
             break;
 
         default:
@@ -129,9 +132,9 @@ function ActionSet(set_id) {
 
 // Add/link an action to the action set
 ActionSet.prototype.appendAction = function(action) {
-    console.log("appending action '" + action.action_id + "' to action set '" + this.set_id + "'");
-    this.action_ids.push(action.action_id);
-    this.actions[action.action_id] = action;
+    console.log("appending action '" + action.id + "' to action set '" + this.set_id + "'");
+    this.action_ids.push(action.id);
+    this.actions[action.id] = action;
 }
 
 

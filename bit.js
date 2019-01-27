@@ -6,18 +6,44 @@
 // The Bit object inherits from the Animata object
 /* The default shape of a bit is a square and it can become a circle. This is done
  * by using bezier curves for the edges. We can simulate an approximation of a circle
- * using 4 cubic bezier curves with control points with a distance of 0.5522847498
+ * using 4 cubic bezier curves with control points with a distance of radius * 0.5522847498
  * away from the end points along the edge of the square within which the circle is inscribed.
  * source: https://stackoverflow.com/questions/1734745/how-to-create-circle-with-b%C3%A9zier-curves */
-const bezier_const = 0.5522847498;
-const inverse_bezier_const = 1 - bezier_const;
+const BEZIER_CONST = 0.5522847498;
 
-function Bit(id, position_x, position_y, size) {
+function Bit(id, shape, position_x, position_y, size) {
     // Inherit details from the Animata constructor
     Animata.call(this, id, position_x, position_y, size);
 
-    // Shape attributes
-    this.bezier_dist = 0;
+    // Shape attribute
+    this.shape = shape;
+    this.corner_rating; // A value between 0 and 1. 0 results in a square. 1 results in a circle.
+    switch (shape) {
+        case 'circle':
+            this.corner_rating = 0;
+            break;
+        case 'square':
+            this.corner_rating = 1;
+            break;
+        default:
+            console.error("'" + shape + "' is not a valid Bit shape. The shape will default to 'square'.");
+            this.shape = 'square';
+            this.corner_rating = 1;
+    }
+
+    // Coordinate variables (TODO: shall be updated with any update to size)
+    this.square_corner_dist;
+    this.bezier_dist;
+    this.radius;
+
+    // Will this work????
+    this.updateCoordinateVars(size);
+    console.log("sq corner: " + this.square_corner_dist);
+    console.log("bezier_dist: " + this.bezier_dist);
+    console.log("radius: " + this.radius);
+
+    // The calculated distance of all corners from the center (TODO: shall be updated with any update to the shape)
+    this.corner_position = this.radius + (this.bezier_dist * this.corner_rating);
 
     // Shadow attributes
     this.depth = 0;
@@ -33,27 +59,58 @@ function Bit(id, position_x, position_y, size) {
 Bit.prototype = Object.create(Animata.prototype);
 
 
+
+/*----- COORDINATE VARIABLES -----*/
+
+/* Calculate all coordinate variables necessary for drawing the Bit.
+ * This method shall be called any time there is a change to the size of the Bit.
+ * values:
+ *      size (s):           the horizontal distances between the edges when the Bit is a quare with a corner_rating of 1
+ *      square_corner_dist (scd):   the distance between the center and a corner of the square resulting from a corner_rating of 1
+ *      bezier_const (bc):  * refer to the top of this document *
+ *      bezier_dist (bd):   the distance between a control point and its respective point on a circle created from bezier curves
+ *      radius (r):         the radius of the circle resulting from a corner_rating of 0
+ * formulas:
+ *      scd = (s / 2) * sqrt(2)
+ *      bd = bc * r
+ *      r = scd - bd
+ *      NOTE: bd is also the distance a corner on the square must move inwards to reach the edge of the complete circled after transformation
+ * derivation to calculate radius:
+ *      r = scd - (bc * r)
+ *      scd = r + (bc * r)
+ *      scd = r * (1 + bc)
+ *      r = scd / (bc + 1)
+ */
+Bit.prototype.updateCoordinateVars = function(size) {
+    this.square_corner_dist = (size / 2) * Math.sqrt(2);
+    this.radius = this.square_corner_dist / (BEZIER_CONST + 1);
+    this.bezier_dist = BEZIER_CONST * this.radius;
+}
+
+
+
 /*------- DISPLAY -------*/
 
 /* The appearance of a bit in this instance is of a platform recessed into the
  * screen. This is done by drawing a ring structure (square-like to begin with),
  * projecting a shadow, and masking the outer edges and shadows out. */
-Bit.prototype.draw = function () {
+Bit.prototype.draw = function() {
     draw.save();
 
+    // The bit is drawn at a 45 degree offset and then rotated back 45 degrees to correct the offset.
+    // The rotation offset will simplify the drawing process.
     draw.translate(this.center_x, this.center_y);
-    draw.rotate(this.angle * Math.PI/180);
+    draw.rotate((this.angle + 45) * Math.PI/180);
 
-    // Calculate the distance of the bezier control points
-    let adjusted_dist = this.size - (inverse_bezier_const * this.bezier_dist);
+    this.corner_position = this.radius + (this.bezier_dist * this.corner_rating)
 
     // Set the mask
     draw.beginPath();
-    draw.moveTo(-this.size, -this.size);
-    draw.bezierCurveTo(this.size, -adjusted_dist, adjusted_dist, -this.size, this.size, -this.size);
-    draw.bezierCurveTo(adjusted_dist, this.size, this.size, adjusted_dist, this.size, this.size);
-    draw.bezierCurveTo(-this.size, adjusted_dist, -adjusted_dist, this.size, -this.size, this.size);
-    draw.bezierCurveTo(-adjusted_dist, -this.size, -this.size, -adjusted_dist, -this.size, -this.size);
+    draw.moveTo(0, -this.corner_position);
+    draw.bezierCurveTo(this.bezier_dist, -this.radius, this.radius, -this.bezier_dist, this.corner_position, 0);
+    draw.bezierCurveTo(this.radius, this.bezier_dist, this.bezier_dist, this.radius, 0, this.corner_position);
+    draw.bezierCurveTo(-this.bezier_dist, this.radius, -this.radius, this.bezier_dist, -this.corner_position, 0);
+    draw.bezierCurveTo(-this.radius, -this.bezier_dist, -this.bezier_dist, -this.radius, 0, -this.corner_position);
     draw.closePath();
     draw.clip();
 
@@ -83,20 +140,23 @@ Bit.prototype.draw = function () {
     }
 
     // Draw the ring like object that will project the shadow
+    // The outer shape will always be a square since it will not be visible
     let ring_width = 40;
+    let outer_corner_position = this.square_corner_dist + ring_width;
 
     draw.beginPath();
-    draw.moveTo(-(this.size + ring_width), -(this.size + ring_width));
-    draw.bezierCurveTo(this.size + ring_width, -adjusted_dist, adjusted_dist, -(this.size + ring_width), this.size + ring_width, -(this.size + ring_width));
-    draw.bezierCurveTo(adjusted_dist, this.size + ring_width, this.size + ring_width, adjusted_dist, this.size + ring_width, this.size + ring_width);
-    draw.bezierCurveTo(-(this.size + ring_width), adjusted_dist, -adjusted_dist, this.size + ring_width, -(this.size + ring_width), this.size + ring_width);
-    draw.bezierCurveTo(-adjusted_dist, -(this.size + ring_width), -(this.size + ring_width), -adjusted_dist, -(this.size + ring_width), -(this.size + ring_width));
+    draw.moveTo(0, -outer_corner_position);
+    draw.lineTo(outer_corner_position, 0);
+    draw.lineTo(0, outer_corner_position);
+    draw.lineTo(-outer_corner_position, 0);
+    draw.lineTo(0, -outer_corner_position);
 
-    draw.moveTo(-this.size, -this.size);
-    draw.bezierCurveTo(-this.size, adjusted_dist, -adjusted_dist, this.size, -this.size, this.size);
-    draw.bezierCurveTo(adjusted_dist, this.size, this.size, adjusted_dist, this.size, this.size);
-    draw.bezierCurveTo(this.size, -adjusted_dist, adjusted_dist, -this.size, this.size, -this.size);
-    draw.bezierCurveTo(-adjusted_dist, -this.size, -this.size, -adjusted_dist, -this.size, -this.size);
+    // Draw counter-clockwise to create the hole in the ring
+    draw.moveTo(0, -this.corner_position);
+    draw.bezierCurveTo(-this.bezier_dist, -this.radius, -this.radius, -this.bezier_dist, -this.corner_position, 0);
+    draw.bezierCurveTo(-this.radius, this.bezier_dist, -this.bezier_dist, this.radius, 0, this.corner_position);
+    draw.bezierCurveTo(this.bezier_dist, this.radius, this.radius, this.bezier_dist, this.corner_position, 0);
+    draw.bezierCurveTo(this.radius, -this.bezier_dist, this.bezier_dist, -this.radius, 0, -this.corner_position);
 
     draw.closePath();
 
@@ -124,8 +184,6 @@ Bit.prototype.intro = function(rate = 1, initial_depth = this.max_depth) {
     this.newActionSet(this.id + '_intro_step_1');
     this.setColor('intro_fill', "rgb(126, 54, 80)", rate * 0.5);
     this.closeActionSet();
-
-
 }
 
 
@@ -173,7 +231,7 @@ Bit.prototype.removeColor = function(action_id, rate, carryover = false) {
 // NOTE: depth cannot be reduced to a value less than 0
 Bit.prototype.setDepth = function(action_id, new_depth, rate, carryover = false) {
     if (new_depth < 0) {
-        console.error('Diamond depth cannot be set to a value lower than 0');
+        console.error("Bit depth cannot be set to a value lower than 0");
         return;
     }
 
@@ -185,9 +243,32 @@ Bit.prototype.setDepth = function(action_id, new_depth, rate, carryover = false)
 
 
 // Transform the Bit into another shape
-// The default shape is a square. Other shapes include: circle (currently the only other shape)
+// The default shape is a square. Currently the only other available shape is a circle.
 Bit.prototype.transform = function(action_id, new_shape, rate, carryover = false) {
+    if (new_shape == this.shape) {
+        console.error("Bit with id '" + this.id + "' is already of the shape type '" + new_shape + "'");
+        return;
+    }
+    let transform;
 
+    // Transform into the appropriate shape
+    switch (new_shape) {
+        case 'circle':
+            transform = new Action('transform', action_id, 0, rate);
+            console.log("circle");
+            console.log(transform.id);
+            break;
+        case 'square':
+            transform = new Action('transform', action_id, 1, rate);
+            break;
+        default:
+            console.error("'" + new_Shape + "' is not a valid shape for Bit with id '" + this.id + "'");
+            return;
+    }
+
+    transform.carryover = carryover;
+    console.log(transform.id);
+    this.assignAction(transform);
 }
 
 
@@ -209,8 +290,10 @@ Bit.prototype.updateAction = function(action) {
             break;
         case 'transform':
             modified_action = this.updateTransform(action);
+            break;
         default:
             // Check if it is an action defined by the Animata (parent)
+            //modified_action = Animata.prototype.updateAction.call(this, action); // Alternative
             modified_action = this.super.updateAction(action);
     }
 
@@ -218,34 +301,23 @@ Bit.prototype.updateAction = function(action) {
 }
 
 
-// Animate the initial appearance of the bit
-Bit.prototype.updateIntro = function(action) {
-
-}
-
-
-// Animate the final disappearance of the bit
-Bit.prototype.updateOutro = function(action) {
-
-}
-
-
 // Animate color fill when setting new colors
 Bit.prototype.updateFill = function(action) {
     console.log("updateFill: " + action.progress + ">" + action.destination);
-    console.log("udpateFill")
     // Check for completion
     if (action.progress >= action.destination) {
         action.progress = action.destination;
+        this.fill_levels[action.id] = action.destination;
         action.complete();
         return action;
     }
+
     // Apply acceleration/decceleration to rate without halting the fill before it is complete
     if (action.rate + action.acceleration > 0) {
         action.rate += action.acceleration;
     }
     action.progress += action.rate;
-    this.fill_levels[action.action_id] += action.rate;
+    this.fill_levels[action.id] += action.rate;
 
     return action;
 }
@@ -297,14 +369,42 @@ Bit.prototype.updateSetDepth = function(action) {
         this.depth = action.goal;
         action.complete();
         return action;
-    } else {
-        // Apply acceleration/decceleration to the rate without halting the depth change before it is complete
-        if (action.rate + action.acceleration > 0) {
-            action.rate += action.acceleration;
-        }
-        action.progress += action.rate * action.direction;
-        this.depth += action.rate * action.direction;
     }
+
+    // Apply acceleration/decceleration to the rate without halting the depth change before it is complete
+    if (action.rate + action.acceleration > 0) {
+        action.rate += action.acceleration;
+    }
+    action.progress += action.rate * action.direction;
+    this.depth += action.rate * action.direction;
+
+    return action;
+}
+
+
+// Animate the transformation of the bit into a different shape
+Bit.prototype.updateTransform = function(action) {
+    console.log("update transform:" + this.corner_rating + ">" + action.goal);
+    action.progress = this.corner_rating;
+
+    if (!action.initialized) {
+        if (action.progress > action.goal) {
+            action.direction = -1;
+        }
+        action.initialized = true;
+    }
+
+    // Check for completeness
+    if (action.progress * action.direction > action.goal * action.direction) {
+        action.progress = action.goal;
+        this.corner_rating = action.goal;
+        action.complete();
+        return action;
+    }
+
+    // Increment the corner_rating and the progress of the action
+    action.progress += action.rate * action.direction;
+    this.corner_rating += action.rate * action.direction;
 
     return action;
 }

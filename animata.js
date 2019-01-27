@@ -160,6 +160,7 @@ Animata.prototype.updateAction = function(action) {
             break;
         default:
             console.error("The Animata with id '" + this.id + "' cannot perform the action with id '" + action.id + "'.");
+            return;
     }
     return modified_action;
 }
@@ -389,6 +390,7 @@ Animata.prototype.assignAction = function(action) {
     } else {
         if (!this.current_action_set) {
             this.current_action_set = new ActionSet(this.id + "_" + action.id);
+            console.log(action.id);
         }
         this.current_action_set.appendAction(action);
     }

@@ -28,10 +28,10 @@ function main() {
     animator = new Animator(draw);
 
     // Let's get this started
-    let test_bit_01 = new Bit("test_01", 360, 325, 15);
-    let test_bit_02 = new Bit("test_02", 360, 360, 15);
-    let test_bit_03 = new Bit("test_03", 360, 395, 15);
-    let test_bit_04 = new Bit("test_04", 325, 395, 15);
+    let test_bit_01 = new Bit("test_01", "square", 360, 325, 30);
+    let test_bit_02 = new Bit("test_02", "square", 360, 360, 30);
+    let test_bit_03 = new Bit("test_03", "square", 360, 395, 30);
+    let test_bit_04 = new Bit("test_04", "square", 325, 395, 30);
 
     animator.addObject("test_01", test_bit_01);
     animator.addObject("test_02", test_bit_02);
@@ -42,6 +42,28 @@ function main() {
     animator.objects["test_02"].intro();
     animator.objects["test_03"].intro();
     animator.objects["test_04"].intro();
+
+    animator.objects["test_01"].newActionSet("transform");
+    animator.objects["test_01"].transform("t_1", 'circle', 1.75);
+    animator.objects["test_01"].closeActionSet();
+
+    animator.objects["test_02"].newActionSet("transform");
+    animator.objects["test_02"].transform("t_2", 'circle', 2.5);
+    animator.objects["test_02"].closeActionSet();
+
+    animator.objects["test_03"].newActionSet("transform");
+    animator.objects["test_03"].transform("t_1", 'circle', 3.5);
+    animator.objects["test_03"].closeActionSet();
+
+    animator.objects["test_04"].newActionSet("transform");
+    animator.objects["test_04"].transform("t_1", 'circle', 4);
+    animator.objects["test_04"].closeActionSet();
+
+    // TODO: well this is broken
+    // animator.objects["test_01"].outro();
+    // animator.objects["test_02"].outro();
+    // animator.objects["test_03"].outro();
+    // animator.objects["test_04"].outro();
 
     console.log(animator);
 
