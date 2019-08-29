@@ -9,6 +9,8 @@
 
 *****************************************/
 
+// NOTE: Safari provides the best and most consistent performance when compared with Chrome and Firefox.
+
 // Dimensions of canvas variables to be accessible globally
 var dimension_x = 720;
 var dimension_y = 720;
@@ -16,59 +18,150 @@ var canvas_center_x = dimension_x/2;
 var canvas_center_y = dimension_y/2;
 
 // Variables storing canvas context and animation states
-var draw;
+var ctx;
 var animator;
 
-function main() {
+// Tetron UI variables
+var bit_size = dimension_y / 25;
+var bit_padding = dimension_y / 20.5;       // Padding between each Bit
+var board_size_x = dimension_x / 2;
+var board_size_y = dimension_y * 0.97;
+var board_position_x = dimension_x / 4;
+var board_position_y = 0;
+var board_left_padding = dimension_x / 33;  // Padding
+var board_top_padding = dimension_y / 72;
+var ui_padding_x = dimension_x / 36;
+var ui_padding_y = dimension_y / 36;
+
+Tetron();
+
+
+function Tetron() {
     console.log("Initializing 'tetron'");
 
+    // Set the resolution for the canvas
+    document.getElementById("canvas").setAttribute("width", dimension_x);
+    document.getElementById("canvas").setAttribute("height", dimension_y);
+    document.getElementById("canvas_container").setAttribute("width", dimension_x);
+    document.getElementById("canvas_container").setAttribute("height", dimension_y);
+
     // Initialize the canvas context and the animator
-    draw = document.getElementById("canvas").getContext("2d");
-    draw.globalCompositeOperation = 'source-over';
-    animator = new Animator(draw);
+    ctx = document.getElementById("canvas").getContext("2d");
+    ctx.globalCompositeOperation = 'source-over';
+    animator = new Animator(62); // Set framerate to 60 fps
 
-    // Let's get this started
-    let test_bit_01 = new Bit("test_01", "square", 360, 325, 30);
-    let test_bit_02 = new Bit("test_02", "square", 360, 360, 30);
-    let test_bit_03 = new Bit("test_03", "square", 360, 395, 30);
-    let test_bit_04 = new Bit("test_04", "square", 325, 395, 30);
-
-    animator.addObject("test_01", test_bit_01);
-    animator.addObject("test_02", test_bit_02);
-    animator.addObject("test_03", test_bit_03);
-    animator.addObject("test_04", test_bit_04);
-
-    animator.objects["test_01"].intro();
-    animator.objects["test_02"].intro();
-    animator.objects["test_03"].intro();
-    animator.objects["test_04"].intro();
-
-    animator.objects["test_01"].newActionSet("transform");
-    animator.objects["test_01"].transform("t_1", 'circle', 1.75);
-    animator.objects["test_01"].closeActionSet();
-
-    animator.objects["test_02"].newActionSet("transform");
-    animator.objects["test_02"].transform("t_2", 'circle', 2.5);
-    animator.objects["test_02"].closeActionSet();
-
-    animator.objects["test_03"].newActionSet("transform");
-    animator.objects["test_03"].transform("t_1", 'circle', 3.5);
-    animator.objects["test_03"].closeActionSet();
-
-    animator.objects["test_04"].newActionSet("transform");
-    animator.objects["test_04"].transform("t_1", 'circle', 4);
-    animator.objects["test_04"].closeActionSet();
-
-    // TODO: well this is broken
-    // animator.objects["test_01"].outro();
-    // animator.objects["test_02"].outro();
-    // animator.objects["test_03"].outro();
-    // animator.objects["test_04"].outro();
-
-    console.log(animator);
+    displayUI();
+    bitArrayTest();
 
     animator.animate();
 }
 
 
-main();
+
+/***********
+ *   UI    *
+ ***********/
+// Draw the main UI elements for the game
+function displayUI() {
+    // Add the background for the game board
+    let board_background = new Platform("board_background", board_position_x, board_position_y, board_size_x, board_size_y);
+    animator.addObject("board_background", board_background);
+    animator.objects["board_background"].intro();
+
+    // Add the background for the piece in hold
+    let hold_size = board_size_x / 2.5;
+    let hold_background = new Platform("hold_background", board_position_x - hold_size - ui_padding_x, board_position_y + ui_padding_y, hold_size, hold_size);
+    animator.addObject("hold_background", hold_background);
+    animator.objects["hold_background"].waitOn("board_background", "intro", 450);
+    animator.objects["hold_background"].intro();
+
+    // Add a background for each of the next pieces being shown
+    let next1_size = board_size_x / 2.5;
+    let next1_background = new Platform("next1_background", board_position_x + board_size_x + ui_padding_x, board_position_y + ui_padding_y, next1_size, next1_size);
+    animator.addObject("next1_background", next1_background);
+    animator.objects["next1_background"].waitOn("board_background", "intro", 200);
+    animator.objects["next1_background"].intro();
+
+    let next2_size = board_size_x / 3;
+    let next2_background = new Platform("next2_background", board_position_x + board_size_x + (ui_padding_x * 2), board_position_y + next1_size + (ui_padding_y * 2), next2_size, next2_size);
+    animator.addObject("next2_background", next2_background);
+    animator.objects["next2_background"].waitOn("board_background", "intro", 300);
+    animator.objects["next2_background"].intro();
+
+    let next3_size = board_size_x / 3;
+    let next3_background = new Platform("next3_background", board_position_x + board_size_x + (ui_padding_x * 2), board_position_y + next1_size + next2_size + (ui_padding_y * 3), next3_size, next3_size);
+    animator.addObject("next3_background", next3_background);
+    animator.objects["next3_background"].waitOn("board_background", "intro", 350);
+    animator.objects["next3_background"].intro();
+
+    let next4_size = board_size_x / 3;
+    let next4_background = new Platform("next4_background", board_position_x + board_size_x + (ui_padding_x * 2), board_position_y + next1_size + next2_size + next3_size + (ui_padding_y * 4), next4_size, next4_size);
+    animator.addObject("next4_background", next4_background);
+    animator.objects["next4_background"].waitOn("board_background", "intro", 375);
+    animator.objects["next4_background"].intro();
+}
+
+
+/* The Board consists of a matrix with 1's representing spaces taken up by placed tetrominos.
+        * The spaces in the Board are numbered left to right (rows) and from top to bottom (columns).
+        * Tetrominos spawn on row 1.
+        * Row 1 is partially visible and row 0 is completely invisible.
+        * TENTATIVE: The game ends when any part of a tetromino is placed on row 0
+*/
+function Board() {
+    this.row_count = 22;
+    this.column_count = 10;
+
+    // Initialize the board_matrix 2-dimensional array with zeros
+    // board_matrix[row][col]
+    this.board_matrix = [];
+    for (let row = 0; row < this.row_count; ++row) {
+        this.board_matrix[row] = [];
+        for (let col = 0; col < this.column_count; ++col) {
+            this.board_matrix[row][col] = 1;
+        }
+    }
+}
+
+// Places a tetromino data_matrix onto the board_matrix
+Board.prototype.commit = function(tetromino) {
+
+}
+
+// Check the Board for completed lines
+Board.prototype.scan = function(tetromino) {
+
+}
+
+function bitArrayTest() {
+    for (let i = 0; i < 7; ++i) {
+        for (let j = 0; j < 10; ++j) {
+            let id = "test_" + i + "_" + j;
+            let test_bit = new Bit(id, "square", board_position_x + board_left_padding + (bit_padding * j), board_position_y + board_top_padding + (bit_padding * i), bit_size);
+            animator.addObject(id, test_bit);
+            animator.objects[id].waitOn("hold_background", "intro", 500);
+            animator.objects[id].intro(1, "#4474CE");
+            if (i != 0 && i != 1) {
+                //animator.objects[id].setDepth("complete_" + id, 0, 2);
+                animator.objects[id].newActionSet();
+                animator.objects[id].waitOn("hold_background", "intro", 1000);
+                animator.objects[id].closeActionSet();
+
+                animator.objects[id].newActionSet();
+                animator.objects[id].transform("demo_transform", "circle", 5);
+                animator.objects[id].setDepth("demo_depth", 0);
+                animator.objects[id].closeActionSet();
+
+                animator.objects[id].newActionSet();
+                animator.objects[id].transform("arrow", "circle");
+                animator.objects[id].closeActionSet();
+
+                animator.objects[id].newActionSet();
+                animator.objects[id].resize("close", 0);
+                animator.objects[id].closeActionSet();
+            }
+            //animator.objects[id].outro();
+
+        }
+    }
+}

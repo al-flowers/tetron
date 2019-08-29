@@ -123,8 +123,7 @@ Action.prototype.complete = function() {
 /***************************/
 
 // The Action Set object will store and facilitate any set of actions being perform simultaneously
-function ActionSet(set_id) {
-    this.set_id = set_id;
+function ActionSet() {
     this.action_ids = [];
     this.actions = {};
 }
@@ -132,7 +131,7 @@ function ActionSet(set_id) {
 
 // Add/link an action to the action set
 ActionSet.prototype.appendAction = function(action) {
-    console.log("appending action '" + action.id + "' to action set '" + this.set_id + "'");
+    //console.log("appending action '" + action.id + "' to action set '" + this.set_id + "'");
     this.action_ids.push(action.id);
     this.actions[action.id] = action;
 }
@@ -140,7 +139,7 @@ ActionSet.prototype.appendAction = function(action) {
 
 // Remove/unlink an action from the action set
 ActionSet.prototype.removeAction = function(action_id) {
-    console.log("removing action '" + action_id + "' from action set '" + this.set_id + "'");
+    //console.log("removing action '" + action_id + "' from action set '" + this.set_id + "'");
     let index = this.action_ids.indexOf(action_id);
     this.action_ids.splice(index, 1);
     delete this.actions[action_id];

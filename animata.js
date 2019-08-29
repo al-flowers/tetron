@@ -27,8 +27,8 @@ function Animata(id, position_x, position_y, size) {
     this.waitlisted = false;
 
     // Position attributes
-    this.center_x = position_x;
-    this.center_y = position_y;
+    this.position_x = position_x;
+    this.position_y = position_y;
     this.angle = 0;
 }
 
@@ -39,24 +39,24 @@ function Animata(id, position_x, position_y, size) {
 // Draw a red circle with an exclamation by default
 // This should be overridden by a child object
 Animata.prototype.draw = function() {
-    draw.save();
+    ctx.save();
 
     // Set the rotation
-    draw.translate(this.center_x, this.center_y);
-    draw.rotate(this.angle * Math.PI/180);
-    draw.translate(-this.center_x, -this.center_y);
+    ctx.translate(this.position_x, this.position_y);
+    ctx.rotate(this.angle * Math.PI/180);
+    ctx.translate(-this.position_x, -this.position_y);
 
     // Draw the circle
-    draw.beginPath();
-    draw.arc(this.center_x, this.center_y, 20, 0, 2 * Math.PI);
-    draw.closePath();
-    draw.fillStyle = "red";
-    draw.fill();
+    ctx.beginPath();
+    ctx.arc(this.position_x, this.position_y, 20, 0, 2 * Math.PI);
+    ctx.closePath();
+    ctx.fillStyle = "red";
+    ctx.fill();
 
     // Set the default text to an exclamation point
     this.setText("!", 15);
 
-    draw.restore();
+    ctx.restore();
 }
 
 
@@ -73,7 +73,7 @@ Animata.prototype.displayText = function(action_id, rate, opacity = 1.0) {
 // Set the text within an HTML element associated with the animata along with a click-triggered action
 // The default HTML element is a LightTextItem
 Animata.prototype.setText = function(text, font_size, click_function = null) {
-    this.text = new LightTextItem(this.id, text, font_size, this.center_x, this.center_y, click_function);
+    this.text = new LightTextItem(this.id, text, font_size, this.position_x, this.position_y, click_function);
 }
 
 
@@ -85,7 +85,7 @@ Animata.prototype.removeText = function() {
 
 // Resize the animata to have a size of new_size
 // NOTE: size cannot be reduced to a value less than 0
-Animata.prototype.resize = function(action_id, new_size, rate, carryover = false) {
+Animata.prototype.resize = function(action_id, new_size, rate = 1, carryover = false) {
     if (new_size < 0) {
         console.error("animata size cannot be lower than 0");
         return;
@@ -97,7 +97,7 @@ Animata.prototype.resize = function(action_id, new_size, rate, carryover = false
 }
 
 // Move the animata to a goal location (absolute coordinates)
-Animata.prototype.moveTo = function(action_id, goal_x, goal_y, velocity, carryover = false) {
+Animata.prototype.moveTo = function(action_id, goal_x, goal_y, velocity = 1, carryover = false) {
     let move = new Action('move', action_id, [goal_x, goal_y], velocity);
     move.carryover = carryover;
 
@@ -106,9 +106,9 @@ Animata.prototype.moveTo = function(action_id, goal_x, goal_y, velocity, carryov
 
 
 // Move the animata by specified x and y distances (relative coordinates)
-Animata.prototype.moveBy = function(action_id, relative_x, relative_y, velocity, carryover = false) {
-    let goal_x = this.center_x + relative_x;
-    let goal_y = this.center_y + relative_y;
+Animata.prototype.moveBy = function(action_id, relative_x, relative_y, velocity = 1, carryover = false) {
+    let goal_x = this.position_x + relative_x;
+    let goal_y = this.position_y + relative_y;
     let move = new Action('move', action_id, [goal_x, goal_y], velocity);
     move.carryover = carryover;
 
@@ -118,7 +118,7 @@ Animata.prototype.moveBy = function(action_id, relative_x, relative_y, velocity,
 
 // Rotate the animata by a specified angle in degrees
 // Negative rate -> clockwise; positive rate -> counter-clockwise
-Animata.prototype.rotate = function(action_id, angle, rate, carryover = false) {
+Animata.prototype.rotate = function(action_id, angle, rate = 1, carryover = false) {
     let rotate = new Action('rotate', action_id, angle, rate);
     rotate.carryover = carryover;
 
@@ -208,16 +208,16 @@ Animata.prototype.updateMove = function(action) {
     // Complete action initialization process if necessary
     if (!action.initialized) {
         // Simulate having the center of the animatable object as the origin of a new coordinate plane
-        action.relative_goal_x = action.destination_x - this.center_x;
-        action.relative_goal_y = action.destination_y - this.center_y;
+        action.relative_goal_x = action.destination_x - this.position_x;
+        action.relative_goal_y = action.destination_y - this.position_y;
 
         // Using a 1 or -1, set whether the x and y-coordinates will increase or decrease with the position change
         action.direction_x = 1;
         action.direction_y = 1;
-        if (action.destination_x < this.center_x) {
+        if (action.destination_x < this.position_x) {
             action.direction_x = -1;
         }
-        if (action.destination_y < this.center_y) {
+        if (action.destination_y < this.position_y) {
             action.direction_y = -1;
         }
 
@@ -233,35 +233,35 @@ Animata.prototype.updateMove = function(action) {
     if (action.progress_x * action.direction_x >= action.relative_goal_x * action.direction_x) {
         let excess = action.progress_x - action.relative_goal_x;
         action.progress_x = action.relative_goal_x;
-        this.center_x -= excess * action.direction_x;
+        this.position_x -= excess * action.direction_x;
         action.reached_x = true;
     }
 
     if (action.progress_y * action.direction_y >= action.relative_goal_y * action.direction_y) {
         let excess = action.progress_y - action.relative_goal_y;
         action.progress_y = action.relative_goal_y;
-        this.center_y -= excess * action.direction_y;
+        this.position_y -= excess * action.direction_y;
         action.reached_y = true;
     }
 
     // Check to see if the destination has been reached and update if unnecessary
     if (action.reached_x && action.reached_y) {
         if (this.text) {
-            this.text.updatePosition(this.center_x, this.center_y);
+            this.text.updatePosition(this.position_x, this.position_y);
         }
         action.complete();
         return action;
     }
     if (!action.reached_x) {
         action.progress_x += action.velocity_x * action.direction_x;
-        this.center_x += action.velocity_x * action.direction_x
+        this.position_x += action.velocity_x * action.direction_x
     }
     if (!action.reached_y) {
         action.progress_y += action.velocity_y * action.direction_y;
-        this.center_y += action.velocity_y * action.direction_y
+        this.position_y += action.velocity_y * action.direction_y
     }
     if (this.text) {
-        this.text.updatePosition(this.center_x, this.center_y);
+        this.text.updatePosition(this.position_x, this.position_y);
     }
 
     return action;
@@ -299,7 +299,7 @@ Animata.prototype.updateRotation = function(action) {
 // i.e., resume actions after the sepcified delay once the wait_condition is cleared
 Animata.prototype.updateWait = function(action) {
     if (!this.wait_condition) {
-        action.progress = Date.now();
+        action.progress = performance.now();
 
         // Start the delay timer now that the wait_condition has been met
         if (!action.initialized) {
@@ -329,7 +329,7 @@ Animata.prototype.update = function() {
     if (this.current_action_set) {
         let carryover = true;
         let action_disposal = [];
-        this.current_action_set.action_ids.forEach((action_id) => {
+        this.current_action_set.action_ids.forEach(action_id => {
             let current_action = this.current_action_set.actions[action_id];
 
             // The current action may disqualify the entire action set from carrying over into the next action set
@@ -349,7 +349,7 @@ Animata.prototype.update = function() {
         });
 
         // Remove any completed actions from the current_action_set
-        action_disposal.forEach((action_id) => {
+        action_disposal.forEach(action_id => {
             this.current_action_set.removeAction(action_id);
         });
 
@@ -371,8 +371,8 @@ Animata.prototype.clearWaitCondition = function() {
 
 
 // Start building a new action set for the Animata
-Animata.prototype.newActionSet = function(set_id) {
-    this.current_action_build = new ActionSet(set_id);
+Animata.prototype.newActionSet = function() {
+    this.current_action_build = new ActionSet();
     this.action_hold = true;
 }
 
@@ -390,7 +390,6 @@ Animata.prototype.assignAction = function(action) {
     } else {
         if (!this.current_action_set) {
             this.current_action_set = new ActionSet(this.id + "_" + action.id);
-            console.log(action.id);
         }
         this.current_action_set.appendAction(action);
     }
@@ -429,7 +428,7 @@ Animata.prototype.pause = function (action_id = null) {
     if (action_id) {
         this.current_action_set.actions[action_id].pause();
     } else {
-        this.current_action_set.forEach((action) => {
+        this.current_action_set.forEach(action => {
            action.pause();
         });
     }
@@ -450,7 +449,7 @@ Animata.prototype.resume = function(action_id = null) {
 
 // Carry over all of the actions in the current_action_set into the next action set in the action_queue
 Animata.prototype.performCarryover = function() {
-    this.current_action_set.action_ids.forEach((action_id) => {
+    this.current_action_set.action_ids.forEach(action_id => {
         this.action_queue[0].appendAction(this.current_action_set.actions[action_id]);
     });
     delete this.current_action_set;

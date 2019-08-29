@@ -4,19 +4,66 @@
 
 /* The Animator will manage the drawing of all objects on the canvas frame-by-frame */
 
-function Animator(canvas) {
+function Animator(framerate) {
     this.queue = [];        // The queue containing the id of each object currently being animated
     this.objects = {};      // Associative array containing all of the drawable objects managed by the Animator
+
+    // Framerate variables
+    /* NOTE: Actual framerate will likely be off by a couple frames due to the precision of the
+        Date.now() function. The Date.now() function has a precision to the nearest millisecond.
+        The performance.now() function has the ability to provide a precision of fractions of a
+        second, but overall slower and inconsistent across browsers. */
+    this.framerate = framerate;
+    this.frame_interval = Math.round(1000 / framerate);
+    console.log(this.frame_interval);
+    this.then = Date.now();
+    console.log(`initial: ${this.then}`);
+    this.now = 0;
+    this.elapsed = 0;
+    this.excess;
 }
 
 
 // The Animate method facilitates the drawing of every frame
 Animator.prototype.animate = function() {
-    draw.clearRect(0, 0, dimension_x, dimension_y);
+    // Maintain endless looping of animation frames
+    window.requestAnimationFrame(() => this.animate());
+
+    /* Track the duration of the current frame and wait (using while loop) the
+       appropriate amount of time to maintain the desired framerate */
+    this.now = Date.now();
+    this.elapsed = this.now - this.then;
+
+    console.groupCollapsed();
+    while (this.elapsed <= this.frame_interval) {
+        this.now = Date.now();
+        this.elapsed = this.now - this.then;
+        console.log(this.elapsed);
+    }
+    console.groupEnd();
+
+    console.log(`EXITING LOOP ${this.elapsed}`);
+
+    this.then = this.now
+
+    // Display framerate
+    document.getElementById("framerate").innerHTML = `FPS: ${(1000 / this.elapsed).toFixed(1)}`;
+
+    // Draw all drawable objects present in the current frame
+    this.draw();
+
+    return;
+}
+
+
+
+Animator.prototype.draw = function() {
+    // Clear canvas
+    ctx.clearRect(0, 0, dimension_x, dimension_y);
 
     // Draw all of the active animata
     let termination_list = [];
-    this.queue.forEach((id) => {
+    this.queue.forEach(id => {
        // Queue the object for deletion from the animation loop if terminated
        if (this.objects[id].terminated) {
            termination_list.push(id);
@@ -34,19 +81,13 @@ Animator.prototype.animate = function() {
                // The wait condition has been met and can be removed from the current_object
                this.objects[id].clearWaitCondition();
            }
-
        }
     });
 
     // Remove any terminated objects from the animation loop
-    termination_list.forEach((id) =>{
+    termination_list.forEach(id => {
        this.removeObject(id);
     });
-
-    // Loop indefinitely
-    window.requestAnimationFrame(() => this.animate());
-
-    return;
 }
 
 

@@ -19,7 +19,6 @@ body {
 }
 
 div.main {
-    border: 1px solid blue;
     position: absolute;
     top: 0;
     bottom: 0;
@@ -34,9 +33,7 @@ div.main {
 
 #canvas_container {
     position: relative;
-    width: 720px;
-    height: 720px;
-    border: 1px solid blue;
+    text-align: left;
 }
 
 div.main:hover {
