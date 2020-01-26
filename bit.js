@@ -41,7 +41,7 @@ function Bit(id, shape, position_x, position_y, size) {
 
     // Shadow attributes
     this.depth = 0;
-    this.max_depth = 8;
+    this.max_depth = 9;
 
     // Fill attributes
     this.fill_layers = [];
@@ -92,7 +92,7 @@ Bit.prototype.updateCoordinateVars = function(size) {
 Bit.prototype.draw = function() {
     ctx.save();
 
-    // The bit is drawn at a 45 degree offset and then rotated back 45 degrees to correct the offset.
+    // The bit is drawn at a 45 degree clock-wise offset and then rotated back 45 degrees to correct the offset.
     // The rotation offset will simplify the drawing process.
     ctx.translate(this.position_x, this.position_y);
     ctx.rotate((this.angle + 45) * Math.PI/180);
@@ -139,29 +139,31 @@ Bit.prototype.draw = function() {
         let ring_width = 20;
         let outer_corner_position = this.square_corner_dist + ring_width;
 
+        // The outer boundary is a square large enough to project a full shadow
         ctx.beginPath();
-        ctx.moveTo(0, -outer_corner_position);  // Top-left
-        ctx.lineTo(outer_corner_position, 0);   // Top-right
-        ctx.lineTo(0, outer_corner_position);   // Bottom-right
-        ctx.lineTo(-outer_corner_position, 0);  // Bottom-left
-        ctx.lineTo(0, -outer_corner_position);  // Top-left
+        ctx.moveTo(0, -outer_corner_position);  // Top-left (after reverting rotation)
+        ctx.lineTo(outer_corner_position, 0);   // Top-right ("")
+        ctx.lineTo(0, outer_corner_position);   // Bottom-right ("")
+        ctx.lineTo(-outer_corner_position, 0);  // Bottom-left ("")
+        ctx.lineTo(0, -outer_corner_position);  // Top-left ("")
 
-        // Draw counter-clockwise to create the opening in the ring
+        // The inner boundary (cutout) will determine the shape the of the Bit and its shadow
         ctx.moveTo(0, -this.corner_dist);
-        ctx.bezierCurveTo(-this.bezier_dist, -this.radius, -this.radius, -this.bezier_dist, -this.corner_dist, 0);  // Left side
-        ctx.bezierCurveTo(-this.radius, this.bezier_dist, -this.bezier_dist, this.radius, 0, this.corner_dist);     // Bottom side
-        ctx.bezierCurveTo(this.bezier_dist, this.radius, this.radius, this.bezier_dist, this.corner_dist, 0);       // Right side
-        ctx.bezierCurveTo(this.radius, -this.bezier_dist, this.bezier_dist, -this.radius, 0, -this.corner_dist);    // Top side
+        ctx.bezierCurveTo(this.bezier_dist, -this.radius, this.radius, -this.bezier_dist, this.corner_dist, 0);     // Right side (after reverting rotation)
+        ctx.bezierCurveTo(this.radius, this.bezier_dist, this.bezier_dist, this.radius, 0, this.corner_dist);       // Bottom side ("")
+        ctx.bezierCurveTo(-this.bezier_dist, this.radius, -this.radius, this.bezier_dist, -this.corner_dist, 0);    // Left side ("")
+        ctx.bezierCurveTo(-this.radius, -this.bezier_dist, -this.bezier_dist, -this.radius, 0, -this.corner_dist);  // Top side ("")
         ctx.closePath();
 
-        // The shadows are set to simulate a light source from the upper-left direction
-        ctx.shadowBlur = this.depth * 1.2;
-        ctx.shadowColor = "rgb(50, 50, 50)";
-        ctx.shadowOffsetX = this.depth / 2;
-        ctx.shadowOffsetY = this.depth / 2;
-        ctx.fill();
+        // Draw a shadow simulating a light source from the upper-left direction
+        if (this.depth > 0) {
+            ctx.shadowBlur = this.depth * 1.2;
+            ctx.shadowColor = "rgb(50, 50, 50)";
+            ctx.shadowOffsetX = this.depth / 2;
+            ctx.shadowOffsetY = this.depth / 2;
+            ctx.fill('evenodd');
+        }
     }
-
 
     ctx.restore();
 }
@@ -170,17 +172,16 @@ Bit.prototype.draw = function() {
 
 // Animate the Bit appearing with an intro animation
 // Fill the initial square shape and then recess it to the inital_depth
-Bit.prototype.intro = function(rate = 1, initial_color = "#FFFFFF", initial_depth = this.max_depth) {
-    this.newActionSet();
-    this.setColor('intro_fill', initial_color, rate);
-    this.closeActionSet();
-
-
+Bit.prototype.intro = function(initial_color = "#FFFFFF", rate = 1, initial_depth = this.max_depth) {
     // First, recess
     this.newActionSet();
     this.setDepth('intro_recess', initial_depth, rate);
     this.closeActionSet();
+
     // Then, fill
+    this.newActionSet();
+    this.setColor('intro_fill', initial_color, rate);
+    this.closeActionSet();
 }
 
 
@@ -191,9 +192,11 @@ Bit.prototype.outro = function(rate = 1) {
     this.newActionSet();
     this.setDepth('outro_unrecess', 0, rate);
     this.closeActionSet();
+
     // Then, unfill
     this.newActionSet();
-    this.removeColor('outro_unfill', rate);
+    this.transform("outro_circle", "circle", rate * 2);
+    this.removeColor("outro_clear", rate* 2);
     this.closeActionSet();
 }
 
@@ -234,7 +237,7 @@ Bit.prototype.setDepth = function(action_id, new_depth, rate = 1, carryover = fa
 
     let set_depth = new Action('set_depth', action_id, new_depth, rate);
     set_depth.carryover = carryover;
-    set_depth.acceleration = -(0.02);
+    set_depth.acceleration = 0;
     this.assignAction(set_depth);
 }
 
@@ -242,6 +245,7 @@ Bit.prototype.setDepth = function(action_id, new_depth, rate = 1, carryover = fa
 // Transform the Bit into another shape
 // The default shape is a square. Currently the only other available shape is a circle.
 Bit.prototype.transform = function(action_id, new_shape, rate = 1, carryover = false) {
+    let modified_rate = rate * 8;
     if (new_shape == this.shape) {
         console.error("Bit with id '" + this.id + "' is already of the shape type '" + new_shape + "'");
         return;
@@ -251,10 +255,10 @@ Bit.prototype.transform = function(action_id, new_shape, rate = 1, carryover = f
     // Transform into the appropriate shape
     switch (new_shape) {
         case 'circle':
-            transform = new Action('transform', action_id, 0, rate);
+            transform = new Action('transform', action_id, 0, modified_rate);
             break;
         case 'square':
-            transform = new Action('transform', action_id, 1, rate);
+            transform = new Action('transform', action_id, 1, modified_rate);
             break;
         default:
             console.error("'" + new_Shape + "' is not a valid shape for Bit with id '" + this.id + "'");

@@ -12,12 +12,12 @@ function Animator(framerate) {
     /* NOTE: Actual framerate will likely be off by a couple frames due to the precision of the
         Date.now() function. The Date.now() function has a precision to the nearest millisecond.
         The performance.now() function has the ability to provide a precision of fractions of a
-        second, but overall slower and inconsistent across browsers. */
+        second, but is now inconsistently limited across browsers for security reasons. */
     this.framerate = framerate;
     this.frame_interval = Math.round(1000 / framerate);
-    console.log(this.frame_interval);
+    // console.log(this.frame_interval);
     this.then = Date.now();
-    console.log(`initial: ${this.then}`);
+    // console.log(`initial: ${this.then}`);
     this.now = 0;
     this.elapsed = 0;
     this.excess;
@@ -34,17 +34,17 @@ Animator.prototype.animate = function() {
     this.now = Date.now();
     this.elapsed = this.now - this.then;
 
-    console.groupCollapsed();
+    //console.groupCollapsed();
     while (this.elapsed <= this.frame_interval) {
         this.now = Date.now();
         this.elapsed = this.now - this.then;
-        console.log(this.elapsed);
+        // console.log(this.elapsed);
     }
-    console.groupEnd();
+    //console.groupEnd();
 
-    console.log(`EXITING LOOP ${this.elapsed}`);
+    // console.log(`EXITING LOOP ${this.elapsed}`);
 
-    this.then = this.now
+    this.then = this.now;
 
     // Display framerate
     document.getElementById("framerate").innerHTML = `FPS: ${(1000 / this.elapsed).toFixed(1)}`;

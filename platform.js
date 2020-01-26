@@ -3,7 +3,7 @@
 /***********************/
 
 // Platforms are squares with a shadow giving the appearance of a raised platform.
-// The Platform will mainly be used as a background UI element.
+// The Platform is mainly intended for use as a background UI element.
 // The Platform object inherits from the Animata object.
 // The position of the Platform is determined by its top left corner.
 
@@ -17,7 +17,7 @@ function Platform(id, position_x, position_y, size_x, size_y) {
 
     // Shadow attributes
     this.depth = 0;
-    this.max_depth = 8;
+    this.max_depth = 9;
 }
 
 // Inherit the prototype from Animata
@@ -33,9 +33,9 @@ Platform.prototype.draw = function() {
     ctx.translate(this.position_x, this.position_y);
 
     // Set the mask which will consist of a ring around the platform
+    // Draw the outer boundary of the mask positive space
     let ring_width = 20;
 
-    // Draw clockwise for outer rectangle of mask
     ctx.beginPath();
     ctx.moveTo(-ring_width, -ring_width);                           // Top-left
     ctx.lineTo(this.size_x + ring_width, -ring_width);              // Top-right
@@ -43,20 +43,22 @@ Platform.prototype.draw = function() {
     ctx.lineTo(-ring_width, this.size_y + ring_width);              // Bottom-left
     ctx.lineTo(-ring_width, -ring_width);                           // Top-left
 
-    // Draw counter-clockwise for inner rectangle of mask
-    ctx.moveTo(0, 0);                       // Top-left
-    ctx.lineTo(0, this.size_y);             // Bottom-left
-    ctx.lineTo(this.size_x, this.size_y);   // Bottom-right
-    ctx.lineTo(this.size_x, 0);             // Top-right
-    ctx.lineTo(0, 0);                       // Top-left
-    ctx.clip();
+    // Draw the inner boundary of the mask positive space w/ each point 1 pixel further in each direction from (0, 0)
+    ctx.moveTo(-1, -1);                                             // Top-left
+    ctx.lineTo(this.size_x + 1, -1);                                // Top-right
+    ctx.lineTo(this.size_x + 1, this.size_y + 1);                   // Bottom-right
+    ctx.lineTo(-1, this.size_y + 1);                                // Bottom-left
+    ctx.lineTo(-1, -1);                                             // Top-left
 
-    // Draw the shadow if the platform is raised
+    ctx.clip('evenodd');
+
+    // If the platform is raised, draw a shadow simulating a light source from the upper-left direction
     if (this.depth > 0) {
         ctx.beginPath();
         ctx.rect(0, 0, this.size_x, this.size_y);
         ctx.closePath();
 
+        // The depth of the platform is demonstrated through its shadow's sharpness and offset
         ctx.shadowBlur = this.depth * 1.2;
         ctx.shadowColor = "rgb(50, 50, 50)";
         ctx.shadowOffsetX = this.depth / 2;
@@ -68,7 +70,7 @@ Platform.prototype.draw = function() {
 }
 
 
-// Elevate the platform and increase the depth of the shadow
+// The intro animation will involve elevating the platform to its default depth if left unspecified
 Platform.prototype.intro = function(rate = 1, initial_depth = this.max_depth) {
     this.newActionSet();
     this.setDepth('intro', initial_depth, rate * 0.05);
@@ -134,6 +136,7 @@ Platform.prototype.updateSetDepth = function(action) {
     if (action.rate + action.acceleration > 0) {
         action.rate += action.acceleration;
     }
+
     action.progress += action.rate * action.direction;
     this.depth += action.rate * action.direction;
 

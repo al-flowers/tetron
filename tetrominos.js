@@ -3,12 +3,15 @@
 /****************************/
 
 /* The Tetromino object will provide all basic functions shared by unique tetrominos.
+        * Each Tetromino object will only store and manipulate data relevant only to itself
         * row and col refer to the Tetromino's position on the board.
         * A Tetromino's location is referred to by the location of the second space in
             the top row of its rotation space.
         * The data_matrix is a representation of the Tetromino using 1's to represent
             a spot taken up by one of the Tetromino's pieces (visually a Bit).
-        * The rotation_state is numbered 0-3 each next one representing a clockwise rotation.
+        * The rotation space will always be a square and shall, therefore, have an equal
+            x-dimension size and y-dimension size. This value will simply be stored as size.
+        * The rotation_state is numbered 0-3 representing the # of clockwise rotations.
 */
 function Tetromino(id, row, col) {
     this.id = id;
@@ -16,42 +19,56 @@ function Tetromino(id, row, col) {
     this.row = row;
     this.col = col;
     this.color = "#000000";
+    this.size = 0;
     this.data_matrix = [];
     this.rotation_state = 0;
     this.commit_pending = false;
 }
 
-// Spawn the tetromino and draw all of its Bits
-Tetromino.prototype.spawn() {
-
-}
-
 // Shift the tetromino and its rotation space to the left on the board by 1 space
-Tetromino.prototype.moveLeft() {
-
+Tetromino.prototype.shiftLeft() {
+    if (this.col <= 0) {
+        console.error("The current active tetromino cannot move any further to the left");
+        return;
+    } else {
+        --this.col;
+    }
 }
 
 // Shift the tetromino and its rotation space to the right on the board by 1 space
-Tetromino.prototype.moveRight() {
-
+Tetromino.prototype.shiftRight() {
+    if (col >= 9) {
+        console.error("The current active tetromino cannot move any further to the left");
+        return;
+    } else {
+        ++this.col;
+    }
 }
 
 // Shift the tetromino and its rotation space down on the board by 1 space
-Tetromino.prototype.moveDown() {
-
+Tetromino.prototype.shiftDown() {
+    if (this.row >= 20) {
+        console.error("The current active tetromino cannot move any further down");
+        return;
+    } else {
+        ++this.row;
+    }
 }
 
-// Shift the tetromino
-Tetromino.prototype.hardDrop() {
-
-}
-
+//
 Tetromino.prototype.rotateClockwise() {
+    let destination = [];
+    for (let i = 0; i < this.size; ++i) {
+        for (let j = 0; j < this.size: ++ j) {
+            destination[j][i] = this.data_matrix[i][this.size - j];
+        }
+    }
 
+    this.data_matrix = destination;
 }
 
 Tetromino.prototype.rotateCounterClockwise() {
-
+    
 }
 
 
